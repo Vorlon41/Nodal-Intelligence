@@ -1,0 +1,91 @@
+from controller import Robot
+
+robot = Robot()
+TIME_STEP = int(robot.getBasicTimeStep())
+
+# MOTOR SETUP
+
+left_motor = robot.getDevice("left wheel motor")
+right_motor = robot.getDevice("right wheel motor")
+
+left_motor.setPosition(float("inf"))
+right_motor.setPosition(float("inf"))
+
+left_motor.setVelocity(0.0)
+right_motor.setVelocity(0.0)
+
+
+# GROUND SENSOR SETUP
+
+gs = []
+
+for i in range(3):
+    sensor = robot.getDevice(f"gs{i}")
+    sensor.enable(TIME_STEP)
+    gs.append(sensor)
+
+
+# CONTROL PARAMETERS
+
+BASE_SPEED = 2.5
+TURN_SPEED = 0.0
+LINE_THRESHOLD = 500
+
+
+# MAIN CONTROL LOOP
+
+while robot.step(TIME_STEP) != -1:
+
+    # Read sensors
+    left = gs[0].getValue()
+    center = gs[1].getValue()
+    right = gs[2].getValue()
+
+    # Convert sensor readings into True/False
+    left_on_line = left < LINE_THRESHOLD
+    center_on_line = center < LINE_THRESHOLD
+    right_on_line = right < LINE_THRESHOLD
+
+
+    # STEERING DECISIONS
+
+    # Line is toward the left
+    if left_on_line and not right_on_line:
+
+        left_speed = TURN_SPEED
+        right_speed = BASE_SPEED
+        action = "TURN LEFT"
+
+    # Line is toward the right
+    elif right_on_line and not left_on_line:
+
+        left_speed = BASE_SPEED
+        right_speed = TURN_SPEED
+        action = "TURN RIGHT"
+
+    # Line is centered
+    elif center_on_line:
+
+        left_speed = BASE_SPEED
+        right_speed = BASE_SPEED
+        action = "STRAIGHT"
+
+    # Line is lost
+    else:
+
+        left_speed = 0.0
+        right_speed = 0.0
+        action = "STOP"
+
+
+    # Send speeds to motors
+    left_motor.setVelocity(left_speed)
+    right_motor.setVelocity(right_speed)
+
+
+    # Display what the controller is doing
+    print(
+        f"L:{left:.0f} C:{center:.0f} R:{right:.0f} | "
+        f"{action} | "
+        f"Motors: {left_speed:.1f}, {right_speed:.1f}"
+    )
